@@ -1,0 +1,55 @@
+"""Build a framework-free synchronized video and reward report."""
+
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+
+
+HTML = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ego TOPReward</title><style>
+:root{color-scheme:dark;font-family:Inter,system-ui,sans-serif;background:#090d16;color:#e5edf8}
+*{box-sizing:border-box}body{margin:0;padding:28px;max-width:1800px;margin:auto}h1{margin:0 0 6px;font-size:30px}
+.sub{color:#91a4bf;margin-bottom:22px}.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px}
+.card{background:#111827;border:1px solid #2a3950;border-radius:14px;padding:14px;min-width:0}video{width:100%;max-height:70vh;background:#000;border-radius:9px}
+.title{display:flex;justify-content:space-between;align-items:center;margin:2px 4px 10px}.readout{color:#fbbf24;font:700 17px ui-monospace,monospace}
+svg{width:100%;height:auto;display:block}.hint{color:#91a4bf;font-size:13px;margin:8px 4px 0}@media(max-width:950px){.grid{grid-template-columns:1fr}body{padding:14px}}
+</style></head><body><h1>Ego TOPReward</h1><div class="sub">GenRobot sample 00001 · task: <b>__TASK__</b></div>
+<div class="grid"><section class="card"><div class="title"><b>Head camera</b><span id="clock"></span></div>
+<video id="video" controls preload="metadata" src="head_camera.mp4"></video></section>
+<section class="card"><div class="title"><b>Reward vs. video time</b><span id="readout" class="readout">loading…</span></div>
+<svg id="chart" viewBox="0 0 760 430" aria-label="Reward chart"></svg><div class="hint">Yellow cursor follows playback. Click the chart to seek.</div></section></div>
+<script>
+const points=__POINTS__, video=document.querySelector('#video'), svg=document.querySelector('#chart');
+const NS='http://www.w3.org/2000/svg',W=760,H=430,L=62,R=20,T=28,B=52,maxT=Math.max(...points.map(p=>p.time_s),41.37);
+const sx=t=>L+Math.max(0,Math.min(1,t/maxT))*(W-L-R),sy=r=>T+(1-r)*(H-T-B);
+function add(n,a,t){const e=document.createElementNS(NS,n);for(const[k,v]of Object.entries(a))e.setAttribute(k,v);if(t!==undefined)e.textContent=t;svg.appendChild(e);return e}
+[0,.25,.5,.75,1].forEach(v=>{add('line',{x1:L,x2:W-R,y1:sy(v),y2:sy(v),stroke:'#273449'});add('text',{x:L-10,y:sy(v)+5,fill:'#91a4bf','text-anchor':'end','font-size':14},v.toFixed(2))});
+[0,maxT/4,maxT/2,3*maxT/4,maxT].forEach(t=>add('text',{x:sx(t),y:H-18,fill:'#91a4bf','text-anchor':'middle','font-size':14},t.toFixed(1)+'s'));
+add('line',{x1:L,x2:W-R,y1:H-B,y2:H-B,stroke:'#64748b','stroke-width':2});
+add('polyline',{points:points.map(p=>sx(p.time_s)+','+sy(p.reward)).join(' '),fill:'none',stroke:'#60a5fa','stroke-width':5,'stroke-linejoin':'round'});
+points.forEach(p=>add('circle',{cx:sx(p.time_s),cy:sy(p.reward),r:6,fill:'#93c5fd',stroke:'#111827','stroke-width':2}));
+const cursor=add('line',{x1:L,x2:L,y1:T,y2:H-B,stroke:'#fbbf24','stroke-width':3}),dot=add('circle',{cx:L,cy:sy(points[0].reward),r:8,fill:'#fbbf24',stroke:'#fff','stroke-width':2});
+function rewardAt(t){if(t<=points[0].time_s)return points[0].reward;for(let i=1;i<points.length;i++){if(t<=points[i].time_s){const a=points[i-1],b=points[i],m=(t-a.time_s)/(b.time_s-a.time_s);return a.reward+m*(b.reward-a.reward)}}return points.at(-1).reward}
+function update(){const t=video.currentTime||0,r=rewardAt(t),x=sx(t);cursor.setAttribute('x1',x);cursor.setAttribute('x2',x);dot.setAttribute('cx',x);dot.setAttribute('cy',sy(r));document.querySelector('#readout').textContent='reward '+r.toFixed(3);document.querySelector('#clock').textContent=t.toFixed(2)+'s / '+(video.duration||maxT).toFixed(2)+'s'}
+video.addEventListener('timeupdate',update);video.addEventListener('loadedmetadata',update);svg.addEventListener('click',e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W;video.currentTime=Math.max(0,Math.min(maxT,(x-L)/(W-L-R)*maxT));update()});update();
+</script></body></html>"""
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("results", type=Path)
+    parser.add_argument("output", type=Path)
+    args = parser.parse_args()
+    payload = json.loads(args.results.read_text())
+    points = payload["points"]
+    for point in points:
+        point.setdefault("time_s", point["source_frame"] / 30.0)
+    page = HTML.replace("__TASK__", payload["task"]).replace("__POINTS__", json.dumps(points))
+    args.output.write_text(page)
+
+
+if __name__ == "__main__":
+    main()
