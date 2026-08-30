@@ -8,3 +8,4 @@ models/
 ego_progress.egg-info/
 data/
 logs/
+*.mp4

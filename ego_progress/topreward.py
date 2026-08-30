@@ -83,6 +83,7 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--model", default="Qwen/Qwen3-VL-8B-Instruct")
     parser.add_argument("--fps", type=float, default=2.0)
+    parser.add_argument("--source-fps", type=float, default=30.0, help="Original camera FPS used for plot timestamps")
     parser.add_argument("--load-in-4bit", action="store_true", help="Use NF4 weights for 16 GB GPUs")
     args = parser.parse_args()
 
@@ -99,6 +100,7 @@ def main() -> None:
         points.append({
             "prefix_frames": end,
             "source_frame": int(paths[end - 1].stem),
+            "time_s": int(paths[end - 1].stem) / args.source_fps,
             "log_p_true": raw,
             "token_id": token_id,
             "token_text": token_text,

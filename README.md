@@ -32,22 +32,36 @@ Score a directory of uniformly sampled JPEG frames:
 This writes `rewards.json` with raw log-probabilities and
 `reward_progress.png` with episode-normalized rewards.
 
+## Extract the GenRobot head camera
+
+Sample `00001` stores H.264 access units on
+`/robot0/sensor/camera0/compressed`. Remux the native 30 FPS stream without
+re-encoding:
+
+```bash
+.venv/bin/python -m ego_progress.extract_mcap_video \
+  data/genrobot_00001/00001.mcap \
+  results/fold_store_00001/head_camera.mp4
+```
+
 ## Tailscale web UI
 
 The Gradio UI accepts a video and task, samples chronological frames, scores
-every growing prefix, and plots scalar reward against time. Bind only to the
-machine's Tailscale address:
+every growing prefix, and shows video and reward side by side. During playback,
+a live cursor and interpolated reward follow the video clock. Bind only to the
+machine.s Tailscale address:
 
 ```bash
 .venv/bin/python -m ego_progress.topreward_server \
   --model models/qwen3-vl-8b \
   --load-in-4bit \
   --initial-results results/fold_store_00001/rewards.json \
+  --initial-video results/fold_store_00001/head_camera.mp4 \
   --host "$(tailscale ip -4)" \
   --port 7860
 ```
 
-The optional initial results file makes an existing sample curve visible as
+The optional initial files make the synchronized GenRobot sample visible as
 soon as the page opens. Uploading a new video runs fresh inference locally.
 
 ## Exact TOPReward prompt
