@@ -1,76 +1,79 @@
 # Ego Progress
 
-An inference-only, zero-shot VLM reward-model baseline for filtering egocentric demonstrations.  It sends a short, ordered frame window and optional task description to InternVL3.5-38B, asks for a structured assessment, and writes one scored record per input.
+Zero-shot reward curves for egocentric robot video using the paper-faithful
+[TOPReward](https://arxiv.org/abs/2602.19313) construction. No reward-model
+training or generated numeric answer is involved: Qwen3-VL scores the final
+single `" True"` token for each growing chronological video prefix, then the
+episode is min-max normalized for visualization.
 
-This is deliberately **not trained**.  The initial question is whether a strong VLM can produce useful, calibrated-enough ranks for data triage before spending time collecting preference labels.
+## Local RTX 5080 setup
 
-## Model and hardware decision
-
-Use [`cyankiwi/InternVL3_5-38B-AWQ-4bit`](https://huggingface.co/cyankiwi/InternVL3_5-38B-AWQ-4bit) for the first experiment.  InternVL3.5-38B has 38.4B parameters (5.5B vision encoder + 32.8B language model); BF16 weights alone require about 71.5 GiB, before activations and KV cache.  A 40 GB A100 therefore cannot run the BF16 model on one GPU.  Four-bit weights are about 18 GiB before quantization metadata and runtime overhead, making this practical on a single A100 with conservative image and context limits.
-
-The model family’s own documentation says the unquantized 38B deployment needs two A100s.  The AWQ checkpoint is an external conversion, so evaluate it against a small hand-labelled holdout before trusting it for filtering.
-
-## Serve the model on the GPU host
-
-Create an isolated environment on the GPU host and install a CUDA-compatible vLLM release.  Then start an OpenAI-compatible local server:
+Qwen3-VL-8B fits on the 16 GB RTX 5080 when loaded as 4-bit NF4. The full
+checkpoint occupies about 17 GB on disk; quantized runtime weights plus vision
+tokens fit in GPU memory.
 
 ```bash
-pip install vllm
-vllm serve cyankiwi/InternVL3_5-38B-AWQ-4bit \
-  --host 127.0.0.1 --port 8000 \
-  --max-model-len 4096 \
-  --gpu-memory-utilization 0.90
+python3 -m venv .venv
+.venv/bin/pip install -e '.[topreward,dev]'
+.venv/bin/hf download Qwen/Qwen3-VL-8B-Instruct --local-dir models/qwen3-vl-8b
 ```
 
-Keep it bound to loopback and access it through SSH forwarding rather than exposing the server publicly:
+Score a directory of uniformly sampled JPEG frames:
 
 ```bash
-ssh -L 8000:127.0.0.1:8000 USER@GPU_HOST
+.venv/bin/python -m ego_progress.topreward \
+  --frames-dir data/frames_00001 \
+  --task 'fold and store clothes' \
+  --output-dir results/fold_store_00001 \
+  --model models/qwen3-vl-8b \
+  --load-in-4bit
 ```
 
-Before the full run, verify `nvidia-smi` reports one complete 40 GB GPU (not a 5 GB MIG slice), and run one request.  If the model fails during startup, reduce `--gpu-memory-utilization` to `0.85`; do not silently fall back to CPU or offload weights.
+This writes `rewards.json` with raw log-probabilities and
+`reward_progress.png` with episode-normalized rewards.
 
-## Input format
+## Tailscale web UI
 
-Use JSONL. Each line represents an ordered temporal window:
-
-```json
-{"id":"episode-0001","task":"Put the mug on the table","frames":["/data/e0001/000120.jpg","/data/e0001/000150.jpg","/data/e0001/000180.jpg"]}
-```
-
-`task` is optional.  Frames must be local image paths on the machine running the client.
-
-## Score a dataset
+The Gradio UI accepts a video and task, samples chronological frames, scores
+every growing prefix, and plots scalar reward against time. Bind only to the
+machine's Tailscale address:
 
 ```bash
-python -m ego_progress.score \
-  --input windows.jsonl --output scores.jsonl \
-  --endpoint http://127.0.0.1:8000/v1 \
-  --model cyankiwi/InternVL3_5-38B-AWQ-4bit
+.venv/bin/python -m ego_progress.topreward_server \
+  --model models/qwen3-vl-8b \
+  --load-in-4bit \
+  --initial-results results/fold_store_00001/rewards.json \
+  --host "$(tailscale ip -4)" \
+  --port 7860
 ```
 
-The output preserves the input fields and adds `reward` (0–100), component scores, a confidence score, evidence, and the raw model answer.  Sort or threshold on `reward`, but use `confidence` and `failure_mode` to route ambiguous clips to review.
+The optional initial results file makes an existing sample curve visible as
+soon as the page opens. Uploading a new video runs fresh inference locally.
 
-## Video reward-progress UI
+## Exact TOPReward prompt
 
-The web UI samples frames chronologically from an uploaded video, scores each growing prefix, and displays a scalar reward progress bar. It is an intentionally expensive offline baseline: later values can use more temporal evidence than earlier values.
+The Qwen chat template contains the video followed by:
 
-```bash
-python -m ego_progress.serve \
-  --endpoint http://127.0.0.1:8000/v1 \
-  --model cyankiwi/InternVL3_5-38B-AWQ-4bit \
-  --host "$(tailscale ip -4)" --port 7860
+```text
+The above video shows a robot manipulation trajectory that completes the following task: {TASK} Decide whether the above statement is True or not. The answer is: True
 ```
 
-Binding to the Tailscale IPv4 address, rather than `0.0.0.0`, keeps the UI off the public interface. Open `http://TAILSCALE_IP:7860` from another device on the same tailnet. The VLM server itself should remain on `127.0.0.1:8000`.
+Only the last token is scored (`" True"`, token ID 3007 for this tokenizer).
+The reward is its causal log-probability; per-episode min-max normalization is
+used only to make the progress curve readable.
+
+The older structured-judge prototype remains in `ego_progress/score.py` and
+`ego_progress/serve.py` for comparison, but TOPReward is the default baseline.
 
 ## Evaluation before filtering
 
-Label 100–300 windows by hand with success/failure or a 1–5 quality score. Compare the scorer's **ranking** (Spearman correlation; AUROC for binary success), inspect the highest-confidence mistakes, and only then choose a filtering threshold.  For offline training data, relative rank is generally more useful than the absolute number.
+Do not interpret a single zero-shot curve as calibrated success probability.
+Label a small holdout and evaluate ranking (Spearman correlation, and AUROC for
+binary success), inspect high-confidence errors, and only then choose a data
+filtering threshold.
 
 ## Sources
 
-* [InternVL3.5 model card](https://huggingface.co/OpenGVLab/InternVL3_5-38B-HF/blob/main/README.md)
-* [InternVL3.5 paper](https://arxiv.org/abs/2508.18265)
-* [AWQ-4bit checkpoint and conversion metadata](https://huggingface.co/cyankiwi/InternVL3_5-38B-AWQ-4bit)
-* [NVIDIA A100 specifications](https://www.nvidia.com/en-us/data-center/a100/)
+- [TOPReward paper](https://arxiv.org/abs/2602.19313)
+- [Official TOPReward implementation](https://github.com/TOPReward/TOPReward)
+- [Qwen3-VL-8B-Instruct](https://huggingface.co/Qwen/Qwen3-VL-8B-Instruct)

@@ -12,15 +12,22 @@ PROMPT_SUFFIX = " Decide whether the above statement is True or not. The answer 
 
 
 class TOPRewardScorer:
-    def __init__(self, model_name: str) -> None:
+    def __init__(self, model_name: str, load_in_4bit: bool = False) -> None:
         import torch
-        from transformers import AutoProcessor, Qwen3VLForConditionalGeneration
+        from transformers import AutoProcessor, BitsAndBytesConfig, Qwen3VLForConditionalGeneration
 
         self.processor = AutoProcessor.from_pretrained(model_name, trust_remote_code=True)
+        quantization = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_compute_dtype=torch.bfloat16,
+            bnb_4bit_use_double_quant=True,
+        ) if load_in_4bit else None
         self.model = Qwen3VLForConditionalGeneration.from_pretrained(
             model_name,
             torch_dtype=torch.bfloat16,
-            device_map="cuda",
+            device_map="auto",
+            quantization_config=quantization,
         ).eval()
 
     def score(self, frames: list[Any], instruction: str, fps: float) -> tuple[float, int, str]:
@@ -45,7 +52,7 @@ class TOPRewardScorer:
         image_inputs, video_inputs = process_vision_info(messages)
         inputs = self.processor(
             text=[full_text], images=image_inputs, videos=video_inputs,
-            padding=True, return_tensors="pt",
+            padding=True, return_tensors="pt", cap_pixels_per_frame=True,
         ).to("cuda")
         labels = inputs["input_ids"].clone()
         labels[:, :-1] = -100
@@ -76,13 +83,14 @@ def main() -> None:
     parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument("--model", default="Qwen/Qwen3-VL-8B-Instruct")
     parser.add_argument("--fps", type=float, default=2.0)
+    parser.add_argument("--load-in-4bit", action="store_true", help="Use NF4 weights for 16 GB GPUs")
     args = parser.parse_args()
 
     paths = sorted(args.frames_dir.glob("*.jpg"))
     if len(paths) < 2:
         parser.error("--frames-dir must contain at least two JPEG frames")
     frames = [Image.open(path).convert("RGB") for path in paths]
-    scorer = TOPRewardScorer(args.model)
+    scorer = TOPRewardScorer(args.model, load_in_4bit=args.load_in_4bit)
     points = []
     raw_rewards = []
     for end in range(2, len(frames) + 1):

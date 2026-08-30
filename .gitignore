@@ -4,3 +4,7 @@ __pycache__/
 dist/
 build/
 .gradio/
+models/
+ego_progress.egg-info/
+data/
+logs/

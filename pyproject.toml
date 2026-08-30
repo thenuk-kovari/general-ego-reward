@@ -13,10 +13,12 @@ dependencies = [
 dev = ["pytest>=8.0.0"]
 topreward = [
   "accelerate>=1.0.0",
+  "bitsandbytes>=0.46.0",
   "matplotlib>=3.8.0",
   "pillow>=10.0.0",
   "qwen-vl-utils>=0.0.14",
   "torch>=2.4.0",
+  "torchvision>=0.19.0",
   "transformers>=4.57.0",
 ]
 

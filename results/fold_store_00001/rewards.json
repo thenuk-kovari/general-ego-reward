@@ -1,0 +1,64 @@
+{
+  "task": "fold and store clothes",
+  "model": "models/qwen3-vl-8b",
+  "prompt_prefix": "The above video shows a robot manipulation trajectory that completes the following task: ",
+  "prompt_suffix": " Decide whether the above statement is True or not. The answer is: True",
+  "points": [
+    {
+      "prefix_frames": 2,
+      "source_frame": 177,
+      "log_p_true": -16.625,
+      "token_id": 3007,
+      "token_text": " True",
+      "reward": 0.0
+    },
+    {
+      "prefix_frames": 3,
+      "source_frame": 354,
+      "log_p_true": -9.75,
+      "token_id": 3007,
+      "token_text": " True",
+      "reward": 1.0
+    },
+    {
+      "prefix_frames": 4,
+      "source_frame": 531,
+      "log_p_true": -11.75,
+      "token_id": 3007,
+      "token_text": " True",
+      "reward": 0.7090909090909091
+    },
+    {
+      "prefix_frames": 5,
+      "source_frame": 709,
+      "log_p_true": -13.75,
+      "token_id": 3007,
+      "token_text": " True",
+      "reward": 0.41818181818181815
+    },
+    {
+      "prefix_frames": 6,
+      "source_frame": 886,
+      "log_p_true": -13.125,
+      "token_id": 3007,
+      "token_text": " True",
+      "reward": 0.509090909090909
+    },
+    {
+      "prefix_frames": 7,
+      "source_frame": 1063,
+      "log_p_true": -12.25,
+      "token_id": 3007,
+      "token_text": " True",
+      "reward": 0.6363636363636364
+    },
+    {
+      "prefix_frames": 8,
+      "source_frame": 1240,
+      "log_p_true": -14.0,
+      "token_id": 3007,
+      "token_text": " True",
+      "reward": 0.38181818181818183
+    }
+  ]
+}
