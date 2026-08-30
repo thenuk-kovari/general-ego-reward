@@ -11,6 +11,14 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0.0"]
+topreward = [
+  "accelerate>=1.0.0",
+  "matplotlib>=3.8.0",
+  "pillow>=10.0.0",
+  "qwen-vl-utils>=0.0.14",
+  "torch>=2.4.0",
+  "transformers>=4.57.0",
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
