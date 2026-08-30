@@ -17,7 +17,7 @@ HTML = """<!doctype html>
 .title{display:flex;justify-content:space-between;align-items:center;margin:2px 4px 10px}.readout{color:#fbbf24;font:700 17px ui-monospace,monospace}
 svg{width:100%;height:auto;display:block}.hint{color:#91a4bf;font-size:13px;margin:8px 4px 0}@media(max-width:950px){.grid{grid-template-columns:1fr}body{padding:14px}}
 </style></head><body><h1>Ego TOPReward</h1><div class="sub">GenRobot sample 00001 · task: <b>__TASK__</b></div>
-<div class="grid"><section class="card"><div class="title"><b>Head camera</b><span id="clock"></span></div>
+<div class="grid"><section class="card"><div class="title"><b>Left-gripper fisheye (robot0)</b><span id="clock"></span></div>
 <video id="video" controls preload="metadata" src="head_camera.mp4"></video></section>
 <section class="card"><div class="title"><b>Reward vs. video time</b><span id="readout" class="readout">loading…</span></div>
 <svg id="chart" viewBox="0 0 760 430" aria-label="Reward chart"></svg><div class="hint">Yellow cursor follows playback. Click the chart to seek.</div></section></div>
