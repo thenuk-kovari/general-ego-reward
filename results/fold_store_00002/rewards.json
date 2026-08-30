@@ -6,66 +6,66 @@
   "points": [
     {
       "prefix_frames": 2,
-      "source_frame": 177,
-      "time_s": 5.900212210965854,
-      "log_p_true": -16.625,
+      "source_frame": 162,
+      "time_s": 5.400248591443493,
+      "log_p_true": -11.875,
       "token_id": 3007,
       "token_text": " True",
       "reward": 0.0
     },
     {
       "prefix_frames": 3,
-      "source_frame": 354,
-      "time_s": 11.800424421931709,
-      "log_p_true": -9.75,
+      "source_frame": 324,
+      "time_s": 10.800497182886986,
+      "log_p_true": -10.375,
       "token_id": 3007,
       "token_text": " True",
-      "reward": 1.0
+      "reward": 0.2553191489361702
     },
     {
       "prefix_frames": 4,
-      "source_frame": 531,
-      "time_s": 17.700636632897563,
-      "log_p_true": -11.75,
+      "source_frame": 486,
+      "time_s": 16.20074577433048,
+      "log_p_true": -8.5,
       "token_id": 3007,
       "token_text": " True",
-      "reward": 0.7090909090909091
+      "reward": 0.574468085106383
     },
     {
       "prefix_frames": 5,
-      "source_frame": 709,
-      "time_s": 23.63418337612876,
-      "log_p_true": -13.75,
+      "source_frame": 649,
+      "time_s": 21.63432923362239,
+      "log_p_true": -8.5,
       "token_id": 3007,
       "token_text": " True",
-      "reward": 0.41818181818181815
+      "reward": 0.574468085106383
     },
     {
       "prefix_frames": 6,
-      "source_frame": 886,
-      "time_s": 29.534395587094618,
-      "log_p_true": -13.125,
+      "source_frame": 811,
+      "time_s": 27.034577825065877,
+      "log_p_true": -8.0,
       "token_id": 3007,
       "token_text": " True",
-      "reward": 0.509090909090909
+      "reward": 0.6595744680851063
     },
     {
       "prefix_frames": 7,
-      "source_frame": 1063,
-      "time_s": 35.43460779806047,
-      "log_p_true": -12.25,
+      "source_frame": 973,
+      "time_s": 32.434826416509374,
+      "log_p_true": -7.375,
       "token_id": 3007,
       "token_text": " True",
-      "reward": 0.6363636363636364
+      "reward": 0.7659574468085106
     },
     {
       "prefix_frames": 8,
-      "source_frame": 1240,
-      "time_s": 41.33482000902632,
-      "log_p_true": -14.0,
+      "source_frame": 1135,
+      "time_s": 37.83507500795287,
+      "log_p_true": -6.0,
       "token_id": 3007,
       "token_text": " True",
-      "reward": 0.38181818181818183
+      "reward": 1.0
     }
   ]
 }
